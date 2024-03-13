@@ -1,33 +1,51 @@
 #include <gtest/gtest.h>
-#include "class.hh"
-#include "dep_mock.hh"
+#include "algebraClass.hh"
+#include "noise_mock.hh"
 
 int main(int argc, char **argv)
 {
-    ::testing::InitGoogleTest(&argc, argv);
+    testing::InitGoogleTest(&argc, argv);
 
     return RUN_ALL_TESTS();
 }
-TEST(SquareTwo, TestSquareTwo)
+
+TEST(AlgebraClass, testSquareTwo)
 {
-    MainClass obj;
+    AlgebraClass obj;
+
+    EXPECT_NEAR(25.0, obj.squareTwo(5.0), 1e-9);
+    EXPECT_NEAR(9.0, obj.squareTwo(3.0), 1e-9);
+    EXPECT_NEAR(900.0, obj.squareTwo(30.0), 1e-9);
 }
 
-TEST(MainClass, ThrowIfNoDependency)
+TEST(AlgebraClass, testSquareTwoNoiseThrow)
 {
-    MainClass obj;
+    AlgebraClass obj;
+    
+    EXPECT_THROW(obj.squareTwoNoise(5.0), std::exception);
 
-    EXPECT_THROW(obj.squareTwoDep(), std::exception);
+    try {
+        obj.squareTwoNoise(5.0); 
+    } catch (std::exception ex) {
+        EXPECT_STREQ(ex.what(), "No noise object found!");
+    }
 }
 
-TEST(MainClass, TestDependency)
-{
-    DepMock dep_mock;
+TEST(AlgebraClass, testSquareTwoNoise) {
+    MockNoise noise;
 
-    MainClass obj(&dep_mock);
+    AlgebraClass obj(&noise);
 
-    EXPECT_CALL(dep_mock, get()).WillOnce(::testing::Return(5.0f));
-    float res = obj.squareTwoDep();
+    EXPECT_CALL(noise, addNoise);
+    obj.squareTwoNoise(5.0);
+}
 
-    EXPECT_NEAR(res, 25.0, 1e-8);
+TEST(AlgebraClass, testSquareTwoNoiseAddition) {
+    MockNoise noise;
+
+    AlgebraClass obj(&noise);
+
+    EXPECT_CALL(noise, addNoise).WillOnce(testing::Return(1.0));
+    float square_plus_noise = obj.squareTwoNoise(5.0);
+    EXPECT_NEAR(square_plus_noise, 26.0, 1e-9);
 }
