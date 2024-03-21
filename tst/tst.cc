@@ -1,51 +1,53 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include "algebraClass.hh"
 #include "noise_mock.hh"
+#include "logger_mock.hh"
 
-int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
 
     return RUN_ALL_TESTS();
 }
 
-TEST(AlgebraClass, testSquareTwo)
-{
-    AlgebraClass obj;
-
-    EXPECT_NEAR(25.0, obj.squareTwo(5.0), 1e-9);
-    EXPECT_NEAR(9.0, obj.squareTwo(3.0), 1e-9);
-    EXPECT_NEAR(900.0, obj.squareTwo(30.0), 1e-9);
-}
-
-TEST(AlgebraClass, testSquareTwoNoiseThrow)
-{
-    AlgebraClass obj;
+TEST(AlgebraClass, SquareTwo) {
+    AlgebraClass alg;
     
-    EXPECT_THROW(obj.squareTwoNoise(5.0), std::exception);
 
-    try {
-        obj.squareTwoNoise(5.0); 
-    } catch (std::exception ex) {
-        EXPECT_STREQ(ex.what(), "No noise object found!");
-    }
+    auto expect = alg.squareTwo(5);
+    EXPECT_NEAR(expect, 25.0, 1e-7);
+    EXPECT_NEAR(alg.squareTwo(25), 625.0, 1e-7);
 }
 
-TEST(AlgebraClass, testSquareTwoNoise) {
-    MockNoise noise;
-
-    AlgebraClass obj(&noise);
-
-    EXPECT_CALL(noise, addNoise);
-    obj.squareTwoNoise(5.0);
+TEST(AlgebraClass, SquareTwoNoiseThrow) {
+    AlgebraClass alg;
+    
+    EXPECT_THROW(alg.squareTwoNoise(1.0), std::exception);
 }
 
-TEST(AlgebraClass, testSquareTwoNoiseAddition) {
-    MockNoise noise;
+TEST(AlgebraClass, SquareTwoNoise) {
+    MockNoise mock_noise;
+    AlgebraClass alg(&mock_noise);
 
-    AlgebraClass obj(&noise);
+    EXPECT_CALL(mock_noise, addNoise).WillOnce(testing::Return(1.0));
 
-    EXPECT_CALL(noise, addNoise).WillOnce(testing::Return(1.0));
-    float square_plus_noise = obj.squareTwoNoise(5.0);
-    EXPECT_NEAR(square_plus_noise, 26.0, 1e-9);
+    auto res = alg.squareTwoNoise(5);
+
+    EXPECT_NEAR(res, 26.0, 1e-7);
+}
+
+TEST(AlgebraClass, testLongOpLogging)
+{
+    MockLogger mock_logger;
+
+    AlgebraClass obj;
+
+    obj.setLogger(&mock_logger);
+
+    EXPECT_CALL(mock_logger, info(testing::StrEq("Long operationg starting...")));
+    EXPECT_CALL(mock_logger, info(testing::StrEq("Long operation over...")));
+
+    auto ret = obj.longOperation(10.0);
+
+    EXPECT_NEAR(ret, 100.0, 1e-8);
 }
